@@ -1,34 +1,87 @@
+using Microsoft.AspNetCore.Authentication.Cookies;
+using T2.PR2._APIRESTRazorPages.Pages;
+using T2.PR2._APIRESTRazorPages.Tools;
+
 namespace T2.PR2._APIRESTRazorPages
 {
 	public class Program
 	{
 		public static void Main(string[] args)
 		{
-			var builder = WebApplication.CreateBuilder(args);
+            var builder = WebApplication.CreateBuilder(args);
 
-			// Add services to the container.
-			builder.Services.AddRazorPages();
+            builder.Services.AddRazorPages();
+            builder.Services.AddHttpContextAccessor();
 
-			var app = builder.Build();
+            builder.Services.AddHttpClient<AuthTools>(client =>
+            {
+                client.BaseAddress = new Uri(builder.Configuration["ApiBaseUrl"]);
+            });
 
-			// Configure the HTTP request pipeline.
-			if (!app.Environment.IsDevelopment())
-			{
-				app.UseExceptionHandler("/Error");
-				// The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
-				app.UseHsts();
-			}
+            builder.Services.AddHttpClient<RegisterModel>(client =>
+            {
+                client.BaseAddress = new Uri(builder.Configuration["ApiBaseUrl"]);
+            });
 
-			app.UseHttpsRedirection();
-			app.UseStaticFiles();
+            builder.Services.AddHttpClient("AuthorizedClient", client =>
+            {
+                client.BaseAddress = new Uri(builder.Configuration["ApiBaseUrl"]);
+            })
+                .AddHttpMessageHandler<AuthDelTools>();
 
-			app.UseRouting();
+            builder.Services.AddScoped<GameTools>();
 
-			app.UseAuthorization();
+            builder.Services.AddTransient<AuthDelTools>();
+            builder.Services.AddHttpClient("AuthorizedClient")
+                   .AddHttpMessageHandler<AuthDelTools>();
 
-			app.MapRazorPages();
+            builder.Services
+                .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+                .AddCookie(options =>
+                {
+                    options.LoginPath = "/Login";
+                    options.LogoutPath = "/Logout";
+                    options.ExpireTimeSpan = TimeSpan.FromMinutes(30);
+                    options.SlidingExpiration = true;
+                    options.Cookie.HttpOnly = true;
+                    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+                    options.Cookie.SameSite = SameSiteMode.Strict;
 
-			app.Run();
-		}
+                    options.Events.OnRedirectToLogin = context =>
+                    {
+                        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                        return Task.CompletedTask;
+                    };
+                    options.Events.OnRedirectToAccessDenied = context =>
+                    {
+                        context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                        return Task.CompletedTask;
+                    };
+                });
+
+            builder.Services.AddAuthorization();
+
+
+
+            var app = builder.Build();
+
+            if (!app.Environment.IsDevelopment())
+            {
+                app.UseExceptionHandler("/Error");
+                app.UseHsts();
+            }
+
+            app.UseHttpsRedirection();
+            app.UseStaticFiles();
+
+            app.UseRouting();
+
+            app.UseAuthentication();
+            app.UseAuthorization();
+
+            app.MapRazorPages();
+
+            app.Run();
+        }
 	}
 }
