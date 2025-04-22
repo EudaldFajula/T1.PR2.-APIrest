@@ -1,0 +1,43 @@
+﻿@page
+@model T2.PR2._APIRESTRazorPages.Pages.GameListModel
+@{
+	ViewData["Title"] = "Game List";
+}
+<div>
+    @if (!Model.Games.Any())
+    {
+                    <p>No games found.</p>
+    }
+    else
+    {
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Title</th>
+                                <th>Description</th>
+                                <th>DeveloperTeam</th>
+                                <th>Votes</th>
+                                <th>Mote Details</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                @foreach (var game in Model.Games)
+                {
+                                            <tr>
+                                                <td>@game.Title</td>
+                                                <td>@game.Description</td>
+                                                <td>@game.DeveloperTeam</td>
+                                                <td>@game.VotingUsers.Count</td>
+                                                <td><a asp-page="/DetailGame"
+                                                    asp-route-id="@game.Id"
+                                                    class="text-decoration-none text-dark">
+                                                    <button>Detail Game</button>
+                                               </a>
+                                               </td>
+                                            </tr>
+                }
+                        </tbody>
+                    </table>
+    }
+
+</div>
